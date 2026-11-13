@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GED Público Digital - Gestão de Licitações, Contratos e Aditivos</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- QRCode JS Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <!-- PDF-Lib para gerar o relatório em PDF certificado -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+</head>
+<body class="bg-slate-900 font-sans text-slate-800 min-h-screen flex flex-col justify-between">
+
+    <!-- TELA DE LOGIN -->
+    <div id="viewLogin" class="flex-1 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 space-y-6 border border-slate-700">
+            <div class="text-center space-y-2">
+                <div class="inline-flex bg-blue-100 text-blue-600 p-3 rounded-full text-xl shadow-inner">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-slate-900">GED Público Digital</h2>
+                <p class="text-xs text-slate-500 font-medium">Acesso Restrito por Perfil e Credenciais</p>
+            </div>
+
+            <form onsubmit="realizarLogin(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Usuário ou E-mail</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400"><i class="fa-solid fa-user"></i></span>
+                        <input type="text" id="loginUsuario" required placeholder="Digite seu usuário" class="w-full pl-10 pr-3 py-2.5 border rounded-lg text-sm bg-slate-50 focus:bg-white transition">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Senha</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400"><i class="fa-solid fa-lock"></i></span>
+                        <input type="password" id="loginSenha" required placeholder="••••••••" class="w-full pl-10 pr-3 py-2.5 border rounded-lg text-sm bg-slate-50 focus:bg-white transition">
+                    </div>
+                </div>
+                <div class="flex items-center justify-between text-xs">
+                    <a href="#" onclick="abrirModalRecuperacao()" class="text-blue-600 hover:underline font-semibold">Esqueceu a senha?</a>
+                </div>
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg text-sm font-bold shadow-lg transition cursor-pointer">
+                    Entrar no Sistema
+                </button>
+            </form>
+            <div class="text-center pt-2 border-t text-[11px] text-slate-400">
+                Sistema integrado de governança e transparência municipal.
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE RECUPERAÇÃO DE SENHA -->
+    <div id="modalRecuperacao" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center hidden z-50 p-4">
+        <div class="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 space-y-4">
+            <h3 class="font-bold text-base text-slate-900 flex items-center gap-2">
+                <i class="fa-solid fa-key text-blue-600"></i> Recuperação de Senha
+            </h3>
+            <p class="text-xs text-slate-500">Informe seu E-mail de recuperação e seu CPF cadastrado para redefinir sua senha.</p>
+            <form onsubmit="processarRecuperacao(event)" class="space-y-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">E-mail Cadastrado</label>
+                    <input type="email" id="recEmail" required placeholder="seuemail@gmail.com" class="w-full border rounded-lg p-2 text-xs">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">CPF</label>
+                    <input type="text" id="recCpf" required placeholder="000.000.000-00" class="w-full border rounded-lg p-2 text-xs font-mono">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Nova Senha</label>
+                    <input type="password" id="recNovaSenha" required placeholder="Mínimo 6 dígitos" class="w-full border rounded-lg p-2 text-xs">
+                </div>
+                <div class="flex justify-end space-x-2 pt-2 border-t">
+                    <button type="button" onclick="fecharModal('modalRecuperacao')" class="px-3 py-1.5 text-xs text-slate-600 rounded cursor-pointer">Cancelar</button>
+                    <button type="submit" class="px-3 py-1.5 bg-blue-600 text-white rounded text-xs font-bold cursor-pointer">Redefinir</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- TOPO DO PAINEL ADMIN -->
+    <header id="adminHeader" class="hidden bg-slate-900 text-white shadow-md p-4 flex justify-between items-center">
+        <h1 class="font-bold text-lg flex items-center gap-2 cursor-pointer" onclick="voltarInicio()">
+            <i class="fa-solid fa-folder-tree text-blue-400"></i>
+            <span>GED Público Digital</span>
+        </h1>
+        <div class="flex items-center gap-3">
+            <button id="btnAlertaTopo" onclick="verificarContratosVencendo(true)" class="hidden bg-amber-500 hover:bg-amber-600 text-slate-900 text-xs px-3 py-1 rounded-full font-bold shadow cursor-pointer transition flex items-center gap-1.5 animate-pulse">
+                <i class="fa-solid fa-bell"></i>
+                <span id="contadorAlertasTopo">0 Alertas de Vigência</span>
+            </button>
+            <span id="badgeCargoUser" class="bg-blue-600 text-xs px-3 py-1 rounded-full font-semibold shadow-sm">Painel Administrador</span>
+            <button onclick="realizarLogout()" class="text-xs bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-full font-semibold cursor-pointer transition">
+                <i class="fa-solid fa-right-from-bracket mr-1"></i> Sair
+            </button>
+        </div>
+    </header>
+
+    <!-- MODO PÚBLICO -->
+    <div id="viewPublico" class="hidden max-w-2xl mx-auto w-full bg-white rounded-xl shadow-lg border border-slate-200 p-6 space-y-6 my-10">
+        <div class="bg-blue-50 border border-blue-200 p-4 rounded-xl text-center space-y-1">
+            <span class="bg-blue-600 text-white text-[10px] font-bold px-2.5 py-0.5 rounded uppercase" id="pubOrgaoTipo">-</span>
+            <h2 class="text-xl font-bold text-slate-900 mt-1" id="pubOrgaoNome">-</h2>
+            <p class="text-xs font-bold text-indigo-700" id="pubSecretariaNome">-</p>
+            <p class="text-xs text-slate-500" id="pubOrgaoInfo">-</p>
+        </div>
+
+        <div class="border-b border-slate-200 pb-3">
+            <div class="flex flex-wrap gap-2 mb-1">
+                <span class="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded" id="pubPastaTipo">Processo</span>
+                <span class="text-xs font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded">
+                    <i class="fa-regular fa-calendar mr-1"></i> <span id="pubPastaMes"></span> / <span id="pubPastaAno"></span>
+                </span>
+            </div>
+            <h3 class="text-lg font-bold text-slate-800 mt-1" id="pubPastaTitulo">-</h3>
+            <p class="text-xs text-slate-500 mt-1" id="pubPastaDescricao">-</p>
+        </div>
+
+        <div>
+            <h4 class="font-bold text-sm text-slate-800 mb-3 flex items-center">
+                <i class="fa-solid fa-file-pdf text-red-500 mr-2"></i> Documentos Digitalizados Disponíveis:
+            </h4>
+            <div class="space-y-2" id="pubArquivosLista"></div>
+        </div>
+
+        <div id="pubSecaoContratosVinculados" class="hidden space-y-3 pt-3 border-t border-slate-200">
+            <h4 class="font-bold text-sm text-emerald-700 flex items-center">
+                <i class="fa-solid fa-file-contract text-emerald-600 mr-2"></i> Contratos Vinculados a esta Licitação:
+            </h4>
+            <div class="space-y-3" id="pubContratosLista"></div>
+        </div>
+
+        <div class="pt-4 border-t border-slate-100 text-center text-xs text-slate-400 flex justify-between items-center">
+            <span><i class="fa-solid fa-shield-halved text-emerald-600 mr-1"></i> Consulta Autenticada de Processo Público</span>
+            <button id="btnVoltarPainelDePublico" onclick="voltarDoPublicoForAdmin()" class="hidden text-xs bg-slate-800 hover:bg-slate-900 text-white px-3 py-1.5 rounded font-semibold cursor-pointer">
+                <i class="fa-solid fa-arrow-left mr-1"></i> Voltar ao Painel
+            </button>
+        </div>
+    </div>
+
+    <!-- Conteúdo Admin -->
+    <main id="viewAdminContainer" class="hidden max-w-6xl w-full mx-auto p-6 flex-1 flex flex-col">
+        
+        <!-- Tela de Órgãos -->
+        <div id="telaOrgaos" class="space-y-6">
+            <div class="flex justify-between items-center border-b pb-4">
+                <div>
+                    <h2 class="text-2xl font-bold text-white">Órgãos e Entidades</h2>
+                    <p class="text-sm text-slate-400">Selecione uma instituição para gerenciar os documentos</p>
+                </div>
+                <div class="flex gap-2">
+                    <button id="btnGerenciarUsuarios" onclick="abrirModalGerenciarUsuarios()" class="hidden bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-lg text-sm font-semibold shadow flex items-center space-x-2 cursor-pointer transition">
+                        <i class="fa-solid fa-users-gear"></i>
+                        <span>Gerenciar Usuários</span>
+                    </button>
+                    <button id="btnCadastrarOrgao" onclick="abrirModalOrgao()" class="hidden bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-lg text-sm font-semibold shadow flex items-center space-x-2 cursor-pointer transition">
+                        <i class="fa-solid fa-plus"></i>
+                        <span>Cadastrar Novo Órgão</span>
+                    </button>
+                </div>
+            </div>
+
+            <div id="listaOrgaos" class="grid grid-cols-1 md:grid-cols-3 gap-6"></div>
+        </div>
+
+        <!-- Tela do Painel do Órgão -->
+        <div id="telaPainel" class="hidden space-y-6">
+            <div class="bg-white p-4 rounded-xl shadow border flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <button onclick="voltarInicio()" class="text-xs bg-slate-200 hover:bg-slate-300 px-3 py-1.5 rounded font-semibold mb-2 inline-block cursor-pointer transition">
+                        <i class="fa-solid fa-arrow-left mr-1"></i> Voltar aos Órgãos
+                    </button>
+                    <h2 id="painelNomeOrgao" class="text-xl font-bold text-slate-900">-</h2>
+                    <p id="painelCnpjOrgao" class="text-xs text-slate-500">-</p>
+                </div>
+                <div id="painelBotoesAcao" class="flex flex-wrap gap-2">
+                    <button onclick="abrirRelatorioDiario()" class="bg-cyan-700 hover:bg-cyan-800 text-white px-3 py-2 rounded-lg text-xs font-semibold shadow cursor-pointer transition">
+                        <i class="fa-solid fa-file-invoice mr-1"></i> Relatório Diário Assinado
+                    </button>
+                    <button id="acaoSecs" onclick="abrirModalSecretarias()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-3 py-2 rounded-lg text-xs font-semibold shadow cursor-pointer transition">
+                        <i class="fa-solid fa-sitemap mr-1"></i> Secretarias / Setores
+                    </button>
+                    <button id="acaoTipos" onclick="abrirModalTipos()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-lg text-xs font-semibold shadow cursor-pointer transition">
+                        <i class="fa-solid fa-tags mr-1"></i> Tipos de Pastas Mensais
+                    </button>
+                    <button id="acaoTiposAtos" onclick="abrirModalTiposAtos()" class="bg-purple-700 hover:bg-purple-800 text-white px-3 py-2 rounded-lg text-xs font-semibold shadow cursor-pointer transition">
+                        <i class="fa-solid fa-bookmark mr-1"></i> Tipos de Atos Oficiais
+                    </button>
+                    <button id="acaoAno" onclick="abrirModalAno()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-lg text-xs font-semibold shadow cursor-pointer transition">
+                        <i class="fa-solid fa-calendar-plus mr-1"></i> Cadastrar Ano
+                    </button>
+                    <button id="acaoLic" onclick="abrirModalLicitacao()" class="bg-amber-600 hover:bg-amber-700 text-white px-3 py-2 rounded-lg text-xs font-semibold shadow cursor-pointer transition">
+                        <i class="fa-solid fa-gavel mr-1"></i> Cadastrar Licitação
+                    </button>
+                    <button id="acaoAto" onclick="abrirModalAtoOficial()" class="bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-lg text-xs font-semibold shadow cursor-pointer transition">
+                        <i class="fa-solid fa-file-lines mr-1"></i> Atos Oficiais & Leis
+                    </button>
+                    <button id="acaoPasta" onclick="abrirModalPasta()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-xs font-semibold shadow cursor-pointer transition">
+                        <i class="fa-solid fa-folder-plus mr-1"></i> Criar Pasta Mensal
+                    </button>
+                </div>
+            </div>
+
+            <!-- Filtros -->
+            <div class="bg-white p-4 rounded-xl shadow border grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Módulo / Seção</label>
+                    <select id="filtroModulo" onchange="alternarVisaoModulo()" class="w-full border rounded-lg p-2 text-sm font-semibold bg-white cursor-pointer">
+                        <option value="PASTAS">Pastas Mensais</option>
+                        <option value="LICITACOES">Licitações & Contratos</option>
+                        <option value="ATOS">Atos Oficiais, Ofícios, Leis & Requerimentos</option>
+                    </select>
+                </div>
+                <div id="blocoFiltroSec">
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Secretaria / Setor</label>
+                    <select id="filtroSecretaria" onchange="renderPastas()" class="w-full border rounded-lg p-2 text-sm font-semibold bg-white cursor-pointer"></select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Exercício / Ano</label>
+                    <select id="filtroAno" onchange="renderPastas()" class="w-full border rounded-lg p-2 text-sm font-semibold bg-white cursor-pointer"></select>
+                </div>
+                <div id="blocoFiltroTipo">
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1" id="labelFiltroDinamico">Filtrar por Mês</label>
+                    <select id="filtroTipo" onchange="renderPastas()" class="w-full border rounded-lg p-2 text-sm font-semibold bg-white cursor-pointer"></select>
+                </div>
+            </div>
+
+            <div class="space-y-3">
+                <div class="flex justify-between items-center">
+                    <h3 class="font-bold text-white text-base" id="tituloSecaoListagem">Pastas e Processos</h3>
+                    <span id="contadorItens" class="text-xs bg-slate-700 text-slate-200 px-2 py-0.5 rounded font-bold">0 itens</span>
+                </div>
+                <div id="gridPastas" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- MODAL DE RELATÓRIO DIÁRIO ASSINADO -->
+    <div id="modalRelatorioDiario" class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center hidden z-50 p-4">
+        <div class="bg-white rounded-xl shadow-2xl max-w-3xl w-full p-8 space-y-6 max-h-[90vh] overflow-y-auto">
+            <div class="text-center border-b pb-4 space-y-1">
+                <span class="bg-blue-600 text-white text-[10px] font-bold px-2.5 py-0.5 rounded uppercase" id="relOrgaoTipo">-</span>
+                <h3 class="font-bold text-xl text-slate-900" id="relOrgaoNome">-</h3>
+                <p class="text-xs text-slate-600 font-mono" id="relOrgaoDadosCnpj">-</p>
+                <p class="text-xs text-slate-600" id="relOrgaoDadosEndereco">-</p>
+                <h4 class="font-bold text-sm text-indigo-700 mt-2 uppercase">Relatório Diário de Execução de Serviços e Digitalização</h4>
+                <p class="text-xs text-slate-500" id="relDataHoje">-</p>
+            </div>
+
+            <div class="space-y-3">
+                <h5 class="font-bold text-xs text-slate-700 uppercase border-b pb-1">Serviços e Registros Realizados Hoje:</h5>
+                <div id="relListaServicos" class="space-y-2 max-h-60 overflow-y-auto"></div>
+            </div>
+
+            <div class="bg-slate-50 border border-slate-200 p-4 rounded-xl space-y-2">
+                <div class="flex items-center gap-2 text-xs font-bold text-slate-800">
+                    <i class="fa-solid fa-file-shield text-emerald-600 text-sm"></i>
+                    <span>Termo de Responsabilidade e Assinatura Digital do Operador</span>
+                </div>
+                <p class="text-[11px] text-slate-600">Declaro para os devidos fins de direito e controle administrativo que os registros e digitalizações listados neste relatório foram conferidos e inseridos no sistema sob minha autoridade.</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-[11px] pt-2 border-t border-slate-200">
+                    <div><strong>Operador Responsável:</strong> <span id="relNomeOperador">-</span></div>
+                    <div><strong>Cargo / Perfil:</strong> <span id="relCargoOperador">-</span></div>
+                    <div><strong>Data e Hora da Emissão:</strong> <span id="relDataHoraEmissao">-</span></div>
+                    <div><strong>Código de Autenticidade (Hash):</strong> <span id="relHashAssinatura" class="font-mono text-blue-600">-</span></div>
+                </div>
+            </div>
+
+            <div class="flex justify-end space-x-2 pt-4 border-t">
+                <button onclick="fecharModal('modalRelatorioDiario')" class="px-4 py-2 text-xs bg-slate-200 text-slate-700 rounded-lg cursor-pointer">Fechar</button>
+                <button onclick="window.print()" class="px-3 py-2 text-xs bg-slate-800 hover:bg-slate-900 text-white rounded-lg font-semibold cursor-pointer"><i class="fa-solid fa-print mr-1"></i> Imprimir</button>
+                <button onclick="gerarRelatorioPDFCertificado()" class="px-4 py-2 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold cursor-pointer"><i class="fa-solid fa-download mr-1"></i> Baixar Relatório em PDF Certificado</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rodapé -->
+    <footer class="text-center py-4 text-xs text-slate-500">
+        GED Público Digital &copy; 2026 - Todos os direitos reservados
+    </footer>
+
+    <!-- Toast Notification -->
+    <div id="toastNotification" class="fixed bottom-5 right-5 bg-slate-900 text-white text-xs px-4 py-3 rounded-lg shadow-xl hidden z-50 flex items-center gap-2 border border-slate-700">
+        <i class="fa-solid fa-circle-check text-emerald-400 text-base"></i>
+        <span id="toastText">Operação realizada com sucesso!</span>
+    </div>
+
+    <!-- MODAL GERENCIAR USUÁRIOS (MASTER) -->
+    <div id="modalGerenciarUsuarios" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center hidden z-50 p-4">
+        <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+            <h3 class="font-bold text-lg text-slate-900 flex items-center gap-2">
+                <i class="fa-solid fa-users-gear text-indigo-600"></i> Gerenciamento de Usuários e Cargos
+            </h3>
+            
+            <div class="bg-slate-50 p-4 rounded-xl border space-y-3">
+                <h4 class="font-bold text-xs text-slate-700 uppercase">Cadastrar Novo Usuário</h4>
+                <form onsubmit="cadastrarNovoUsuario(event)" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Nome do Usuário</label>
+                        <input type="text" id="novoUserNome" required placeholder="Ex: Maria Funcionária" class="w-full border rounded p-2 text-xs">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Senha de Acesso</label>
+                        <input type="password" id="novoUserSenha" required placeholder="••••••••" class="w-full border rounded p-2 text-xs">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Cargo / Permissão</label>
+                        <select id="novoUserCargo" onchange="verificarCargoNovoUser()" required class="w-full border rounded p-2 text-xs bg-white font-semibold">
+                            <option value="Prefeito">Prefeito (Vê TUDO do Órgão - Consulta)</option>
+                            <option value="Presidente Câmara">Presidente da Câmara (Vê TUDO do Órgão - Consulta)</option>
+                            <option value="Secretario">Secretário(a) (Vê Apenas Sua Secretaria - Consulta)</option>
+                            <option value="Funcionario">Funcionário / Digitalizador (Digitaliza TUDO - Sem excluir)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Órgão Vinculado</label>
+                        <select id="novoUserOrgao" onchange="atualizarSecretariasModalUser()" required class="w-full border rounded p-2 text-xs bg-white font-semibold"></select>
+                    </div>
+                    <div id="blocoSecretariaRestrita" class="hidden md:col-span-2">
+                        <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Secretaria Restrita (Escolha a Cadastrada)</label>
+                        <select id="novoUserSecretaria" class="w-full border rounded p-2 text-xs bg-white font-semibold"></select>
+                    </div>
+                    <div class="md:col-span-2 flex justify-end">
+                        <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded text-xs font-bold cursor-pointer">Cadastrar Usuário</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="space-y-2">
+                <h4 class="font-bold text-xs text-slate-700 uppercase">Usuários Cadastrados no Sistema:</h4>
+                <div class="border rounded-lg max-h-48 overflow-y-auto divide-y" id="listaUsuariosCadastrados"></div>
+            </div>
+
+            <div class="flex justify-end pt-2 border-t">
+                <button onclick="fecharModal('modalGerenciarUsuarios')" class="px-4 py-2 bg-slate-800 text-white rounded-lg text-xs font-semibold cursor-pointer">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE CADASTRO/EDIÇÃO DE ÓRGÃO -->
+    <div id="modalOrgao" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center hidden z-50 p-4">
+        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 space-y-4">
+            <h3 class="font-bold text-lg text-slate-900" id="tituloModalOrgao">Cadastrar Novo Órgão</h3>
+            <input type="hidden" id="editOrgaoId">
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">CNPJ (Busca Automática)</label>
+                <div class="flex gap-2">
+                    <input type="text" id="cnpjOrgao" placeholder="00.000.000/0001-00" class="flex-1 border rounded-lg p-2 text-sm font-mono">
+                    <button type="button" onclick="buscarCnpjReceita()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-xs font-semibold cursor-pointer transition">
+                        <i class="fa-solid fa-magnifying-glass mr-1"></i> Buscar
+                    </button>
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Nome do Órgão</label>
+                <input type="text" id="nomeOrgao" placeholder="Prefeitura Municipal ou Câmara..." class="w-full border rounded-lg p-2 text-sm">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Endereço e Contato</label>
+                <input type="text" id="enderecoOrgao" placeholder="Rua, Bairro, Cidade - UF • Tel: (00) 0000-0000" class="w-full border rounded-lg p-2 text-xs bg-slate-50">
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Tipo</label>
+                    <select id="tipoOrgao" class="w-full border rounded-lg p-2 text-sm">
+                        <option value="Prefeitura Municipal">Prefeitura</option>
+                        <option value="Câmara Municipal">Câmara</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Gestor</label>
+                    <input type="text" id="gestorOrgao" placeholder="Prefeito / Pres." class="w-full border rounded-lg p-2 text-sm">
+                </div>
+            </div>
+            <div class="flex justify-end space-x-2 pt-2 border-t">
+                <button onclick="fecharModal('modalOrgao')" class="px-4 py-2 text-sm text-slate-600 rounded-lg cursor-pointer">Cancelar</button>
+                <button onclick="salvarOrgao()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-semibold cursor-pointer transition">Salvar Órgão</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalSecretarias" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center hidden z-50 p-4">
+        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 space-y-4">
+            <h3 class="font-bold text-lg text-slate-900"><i class="fa-solid fa-sitemap mr-1"></i> Gerenciar Secretarias / Setores</h3>
+            <div class="flex gap-2">
+                <input type="text" id="novaSecretariaNome" placeholder="Ex: Secretaria, Gabinete..." class="flex-1 border rounded-lg p-2 text-sm">
+                <button onclick="adicionarSecretaria()" class="bg-emerald-700 text-white px-3 py-2 rounded-lg text-sm font-semibold cursor-pointer">Adicionar</button>
+            </div>
+            <div class="border rounded-lg max-h-48 overflow-y-auto divide-y" id="listaSecretariasModal"></div>
+            <div class="flex justify-end pt-2 border-t">
+                <button onclick="fecharModal('modalSecretarias')" class="px-4 py-2 bg-slate-800 text-white rounded-lg text-xs font-semibold cursor-pointer">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalAno" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center hidden z-50 p-4">
+        <div class="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 space-y-4">
+            <h3 class="font-bold text-lg text-slate-900">Cadastrar Novo Ano</h3>
+            <input type="number" id="inputNovoAno" placeholder="Ex: 2026" class="w-full border rounded-lg p-2 text-sm font-semibold">
+            <div class="flex justify-end space-x-2 pt-2 border-t">
+                <button onclick="fecharModal('modalAno')" class="px-4 py-2 text-sm text-slate-600 rounded-lg cursor-pointer">Cancelar</button>
+                <button onclick="salvarAno()" class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-semibold cursor-pointer">Cadastrar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalTipos" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center hidden z-50 p-4">
+        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 space-y-4">
+            <h3 class="font-bold text-lg text-slate-900">Tipos de Pastas Mensais</h3>
+            <div class="flex gap-2">
+                <input type="text" id="inputNovoTipo" placeholder="Ex: Processo de Pagamento..." class="flex-1 border rounded-lg p-2 text-sm">
+                <button onclick="adicionarTipo()" class="bg-indigo-600 text-white px-3 py-2 rounded-lg text-sm font-semibold cursor-pointer">Adicionar</button>
+            </div>
+            <div class="border rounded-lg max-h-48 overflow-y-auto divide-y" id="listaTiposModal"></div>
+            <div class="flex justify-end pt-2 border-t">
+                <button onclick="fecharModal('modalTipos')" class="px-4 py-2 bg-slate-800 text-white rounded-lg text-xs font-semibold cursor-pointer">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalTiposAtos" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center hidden z-50 p-4">
+        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 space-y-4">
+            <h3 class="font-bold text-lg text-slate-900">Tipos de Atos Oficiais</h3>
+            <div class="flex gap-2">
+                <input type="text" id="inputNovoTipoAto" placeholder="Ex: Decreto, Portaria, Lei..." class="flex-1 border rounded-lg p-2 text-sm">
+                <button onclick="adicionarTipoAto()" class="bg-purple-600 text-white px-3 py-2 rounded-lg text-sm font-semibold cursor-pointer">Adicionar</button>
+            </div>
+            <div class="border rounded-lg max-h-48 overflow-y-auto divide-y" id="listaTiposAtosModal"></div>
+            <div class="flex justify-end pt-2 border-t">
+                <button onclick="fecharModal('modalTiposAtos')" class="px-4 py-2 bg-slate-800 text-white rounded-lg text-xs font-semibold cursor-pointer">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalPasta" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center hidden z-50 p-4">
+        <div class="bg-white rounded-xl shadow-2xl max-w-lg w-full p-6 space-y-4">
+            <h3 class="font-bold text-lg text-slate-900">Criar Nova Pasta Mensal</h3>
+            <form onsubmit="salvarPasta(event)" class="space-y-3">
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Secretaria / Setor</label>
+                        <select id="pastaSecForm" required class="w-full border rounded-lg p-2 text-xs font-semibold bg-slate-50"></select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Mês / Ano</label>
+                        <div class="flex gap-1">
+                            <select id="pastaMesForm" required class="w-full border rounded-lg p-2 text-xs font-semibold bg-slate-50">
+                                <option value="Janeiro">Jan</option><option value="Fevereiro">Fev</option><option value="Março">Mar</option><option value="Abril">Abr</option><option value="Maio">Mai</option><option value="Junho">Jun</option><option value="Julho">Jul</option><option value="Agosto">Ago</option><option value="Setembro">Set</option><option value="Outubro">Out</option><option value="Novembro">Nov</option><option value="Dezembro">Dez</option>
+                            </select>
+                            <input type="text" id="pastaAnoForm" readonly class="w-16 border rounded-lg p-2 text-xs font-semibold bg-slate-100 text-center">
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <div class="flex justify-between items-center mb-1">
+                        <label class="block text-xs font-bold text-slate-700 uppercase">Tipo de Documento (Pasta)</label>
+                        <button type="button" onclick="abrirModalTipos()" class="text-[10px] text-indigo-600 hover:underline font-bold">+ Gerenciar Tipos</button>
+                    </div>
+                    <select id="pastaTipoForm" required class="w-full border rounded-lg p-2 text-sm"></select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Título / Número do Processo</label>
+                    <input type="text" id="pastaTitulo" required placeholder="Ex: Processo nº 045/2026" class="w-full border rounded-lg p-2 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Descrição</label>
+                    <textarea id="pastaDescricao" rows="2" placeholder="Resumo..." class="w-full border rounded-lg p-2 text-sm"></textarea>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Documentos (PDFs - Permite Múltiplos)</label>
+                    <input type="file" id="pastaArquivos" multiple accept=".pdf,.doc,.docx,.jpg,.png" class="w-full border rounded-lg p-2 text-xs">
+                </div>
+                <div class="flex justify-end space-x-2 pt-2 border-t">
+                    <button type="button" onclick="fecharModal('modalPasta')" class="px-4 py-2 text-sm text-slate-600 rounded-lg cursor-pointer">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold cursor-pointer">Salvar & Gerar QR Code</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL CADASTRAR LICITAÇÃO -->
+    <div id="modalLicitacao" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center hidden z-50 p-4">
+        <div class="bg-white rounded-xl shadow-2xl max-w-lg w-full p-6 space-y-4 max-h-[92vh] overflow-y-auto">
+            <h3 class="font-bold text-lg text-amber-800 flex items-center">
+                <i class="fa-solid fa-gavel mr-2"></i> Cadastrar Licitação
+            </h3>
+            <form onsubmit="salvarLicitacao(event)" class="space-y-3">
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Secretaria / Setor Responsável</label>
+                        <select id="licSecForm" required class="w-full border rounded-lg p-2 text-xs font-semibold bg-slate-50"></select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Exercício / Ano</label>
+                        <input type="text" id="licAnoForm" readonly class="w-full border rounded-lg p-2 text-xs font-semibold bg-slate-100 text-center">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Modalidade</label>
+                        <select id="licModalidadeForm" required class="w-full border rounded-lg p-2 text-xs font-semibold bg-slate-50">
+                            <option value="Pregão Eletrônico">Pregão Eletrônico</option>
+                            <option value="Dispensa Eletrônica">Dispensa Eletrônica</option>
+                            <option value="Inexigibilidade">Inexigibilidade</option>
+                            <option value="Pregão Presencial">Pregão Presencial</option>
+                            <option value="Concorrência">Concorrência</option>
+                            <option value="Tomada de Preços">Tomada de Preços</option>
+                            <option value="Convite">Convite</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Número do Edital / Processo</label>
+                        <input type="text" id="licNumero" required placeholder="Ex: Pregão nº 005/2026" class="w-full border rounded-lg p-2 text-sm">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Objeto / Descrição</label>
+                    <textarea id="licDescricao" rows="2" placeholder="Ex: Registro de preços..." class="w-full border rounded-lg p-2 text-sm"></textarea>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Edital e Documentos (PDF)</label>
+                    <input type="file" id="licArquivos" multiple accept=".pdf,.doc,.docx" class="w-full border rounded-lg p-2 text-xs">
+                </div>
+                <div class="flex justify-end space-x-2 pt-2 border-t">
+                    <button type="button" onclick="fecharModal('modalLicitacao')" class="px-4 py-2 text-sm text-slate-600 rounded-lg cursor-pointer">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-semibold cursor-pointer">Salvar Licitação</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL ADICIONAR CONTRATO VINCULADO -->
+    <div id="modalContratoVinculado" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center hidden z-50 p-4">
+        <div class="bg-white rounded-xl shadow-2xl max-w-lg w-full p-6 space-y-4 max-h-[92vh] overflow-y-auto">
+            <h3 class="font-bold text-lg text-emerald-800 flex items-center">
+                <i class="fa-solid fa-file-contract mr-2"></i> Adicionar Contrato ao Pregão
+            </h3>
+            <p class="text-xs text-slate-500" id="infoPregaoPaiModal">Vinculando contrato ao processo selecionado.</p>
+            <input type="hidden" id="contratoLicitacaoId">
+            <form onsubmit="salvarContratoVinculado(event)" class="space-y-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Número do Contrato *</label>
+                    <input type="text" id="conNumero" required placeholder="Ex: Contrato nº 012/2026" class="w-full border rounded-lg p-2 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Empresa Contratada / Objeto *</label>
+                    <textarea id="conDescricao" rows="2" required placeholder="Ex: Empresa XYZ Ltda..." class="w-full border rounded-lg p-2 text-sm"></textarea>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Início da Vigência *</label>
+                        <input type="date" id="conInicioVigencia" required class="w-full border rounded-lg p-2 text-xs bg-white">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Término da Vigência *</label>
+                        <input type="date" id="conTerminoVigencia" required class="w-full border rounded-lg p-2 text-xs bg-white">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Valor Global do Contrato (R$) *</label>
+                    <input type="text" id="conValorContrato" required oninput="formatarMoedaInput(this)" placeholder="0,00" class="w-full border rounded-lg p-2 text-xs font-mono bg-white">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Termos de Contrato Assinado (PDF)</label>
+                    <input type="file" id="conArquivos" multiple accept=".pdf,.doc,.docx" required class="w-full border rounded-lg p-2 text-xs">
+                </div>
+                <div class="flex justify-end space-x-2 pt-2 border-t">
+                    <button type="button" onclick="fecharModal('modalContratoVinculado')" class="px-4 py-2 text-sm text-slate-600 rounded-lg cursor-pointer">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-semibold cursor-pointer">Salvar Contrato</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL ADICIONAR TERMO ADITIVO -->
+    <div id="modalAditivo" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center hidden z-50 p-4">
+        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 space-y-4 max-h-[92vh] overflow-y-auto">
+            <h3 class="font-bold text-lg text-indigo-900 flex items-center">
+                <i class="fa-solid fa-file-circle-plus mr-2"></i> Adicionar Termo Aditivo ao Contrato
+            </h3>
+            <p class="text-xs text-slate-500" id="infoContratoPaiModal">Lançando aditivo para prorrogação ou acréscimo.</p>
+            <input type="hidden" id="aditivoContratoId">
+            <form onsubmit="salvarAditivoContrato(event)" class="space-y-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Identificação / Número do Aditivo *</label>
+                    <input type="text" id="aditivoTitulo" required placeholder="Ex: 1º Termo Aditivo" class="w-full border rounded-lg p-2 text-sm">
+                </div>
+                <div class="bg-amber-50 border border-amber-200 p-3 rounded-xl space-y-3">
+                    <div class="text-xs font-bold text-amber-900 flex items-center gap-1.5">
+                        <i class="fa-solid fa-clock-rotate-left"></i>
+                        <span>Prorrogação de Vigência ou Acréscimo de Valor</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-700 uppercase mb-1">Novo Início Vigência</label>
+                            <input type="date" id="aditivoInicioVigencia" class="w-full border rounded-lg p-1.5 text-xs bg-white">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-700 uppercase mb-1">Novo Término Vigência</label>
+                            <input type="date" id="aditivoTerminoVigencia" class="w-full border rounded-lg p-1.5 text-xs bg-white">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-700 uppercase mb-1">Valor Acrescido no Aditivo (R$)</label>
+                        <input type="text" id="aditivoValorAcrescido" oninput="formatarMoedaInput(this)" placeholder="0,00" class="w-full border rounded-lg p-1.5 text-xs font-mono bg-white">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Justificativa / Descrição</label>
+                    <textarea id="aditivoDescricao" rows="2" placeholder="Detalhes..." class="w-full border rounded-lg p-2 text-sm"></textarea>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Documentos do Aditivo (PDF) *</label>
+                    <input type="file" id="aditivoArquivos" multiple accept=".pdf,.doc,.docx" required class="w-full border rounded-lg p-2 text-xs">
+                </div>
+                <div class="flex justify-end space-x-2 pt-2 border-t">
+                    <button type="button" onclick="fecharModal('modalAditivo')" class="px-4 py-2 text-sm text-slate-600 rounded-lg cursor-pointer">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold cursor-pointer">Salvar Aditivo</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL CADASTRAR ATO OFICIAL -->
+    <div id="modalAtoOficial" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center hidden z-50 p-4">
+        <div class="bg-white rounded-xl shadow-2xl max-w-lg w-full p-6 space-y-4">
+            <h3 class="font-bold text-lg text-purple-900 flex items-center">
+                <i class="fa-solid fa-file-lines mr-2"></i> Cadastrar Ato Oficial, Lei ou Ofício
+            </h3>
+            <form onsubmit="salvarAtoOficial(event)" class="space-y-3">
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="block text-xs font-bold text-slate-700 uppercase">Tipo de Documento</label>
+                            <button type="button" onclick="abrirModalTiposAtos()" class="text-[10px] text-purple-700 hover:underline font-bold">+ Gerenciar Tipos</button>
+                        </div>
+                        <select id="atoTipoForm" required class="w-full border rounded-lg p-2 text-xs font-semibold bg-slate-50"></select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Exercício / Ano</label>
+                        <input type="text" id="atoAnoForm" readonly class="w-full border rounded-lg p-2 text-xs font-semibold bg-slate-100 text-center">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Número e Título do Documento</label>
+                    <input type="text" id="atoTitulo" required placeholder="Ex: Decreto nº 01/2026" class="w-full border rounded-lg p-2 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Ementa / Descrição</label>
+                    <textarea id="atoDescricao" rows="2" placeholder="Ementa..." class="w-full border rounded-lg p-2 text-sm"></textarea>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Documentos (PDF)</label>
+                    <input type="file" id="atoArquivos" multiple accept=".pdf,.doc,.docx" required class="w-full border rounded-lg p-2 text-xs">
+                </div>
+                <div class="flex justify-end space-x-2 pt-2 border-t">
+                    <button type="button" onclick="fecharModal('modalAtoOficial')" class="px-4 py-2 text-sm text-slate-600 rounded-lg cursor-pointer">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-semibold cursor-pointer">Salvar Registro</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL QR CODE -->
+    <div id="modalQr" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center hidden z-50 p-4">
+        <div class="bg-white rounded-xl shadow-2xl max-w-xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div class="text-center space-y-1">
+                <h4 class="font-bold text-base uppercase" id="qrOrgaoNome">-</h4>
+                <p class="text-xs font-bold text-indigo-700" id="qrSecretariaNome">-</p>
+                <p class="text-xs text-slate-500" id="qrOrgaoSub">-</p>
+                <div class="inline-block bg-blue-100 text-blue-800 text-xs px-2.5 py-0.5 rounded font-semibold mt-1" id="qrAnoTipoTag">-</div>
+            </div>
+            <div class="flex flex-col items-center justify-center space-y-2 p-4 bg-slate-50 border rounded-xl">
+                <div id="qrcodeCanvas" class="p-2 bg-white border rounded flex justify-center items-center min-h-[160px] min-w-[160px]"></div>
+                <p class="text-[11px] text-slate-500 font-mono text-center break-all max-w-md" id="qrCodeUrlText"></p>
+                <div class="flex gap-2 pt-1">
+                    <button onclick="copiarLinkQr()" class="px-3 py-1.5 bg-slate-200 rounded text-xs font-semibold cursor-pointer"><i class="fa-solid fa-copy mr-1"></i> Copiar Link</button>
+                    <button onclick="testarModoPublicoDirecto()" class="px-3 py-1.5 bg-emerald-600 text-white rounded text-xs font-semibold cursor-pointer"><i class="fa-solid fa-external-link mr-1"></i> Abrir Visão Pública</button>
+                    <button onclick="window.print()" class="px-3 py-1.5 bg-blue-600 text-white rounded text-xs font-semibold cursor-pointer"><i class="fa-solid fa-print mr-1"></i> Imprimir</button>
+                </div>
+            </div>
+            <div class="space-y-2">
+                <h5 class="font-bold text-xs text-slate-700 uppercase">Documentos da Licitação / Processo:</h5>
+                <div id="qrArquivosLista" class="space-y-1.5"></div>
+            </div>
+            <div id="qrContratosSecao" class="space-y-3 pt-2 border-t">
+                <h5 class="font-bold text-xs text-emerald-700 uppercase">Contratos Vinculados e Aditivos:</h5>
+                <div id="qrContratosLista" class="space-y-2"></div>
+            </div>
+            <div class="flex justify-end pt-2 border-t">
+                <button onclick="fecharModal('modalQr')" class="px-4 py-2 bg-slate-800 text-white rounded-lg text-xs font-semibold cursor-pointer">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CARREGAMENTO DOS MÓDULOS NA ORDEM CORRETA -->
+    <script src="js/banco.js"></script>
+    <script src="js/seguranca.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+{
+  "name": "ged-publico-digital",
+  "version": "1.0.0",
+  "description": "Sistema GED Público Digital",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  },
+  "engines": {
+    "node": "18.x"
+  }
+}
